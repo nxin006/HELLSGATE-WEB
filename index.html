@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HELLSGATE — ENTER THE UNKNOWN</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+:root{
+  --red:#cc0000;
+  --red-bright:#ff2020;
+  --red-glow:#ff0000;
+  --red-dim:#800000;
+  --red-dark:#3a0000;
+  --bg:#050505;
+  --bg2:#0a0a0a;
+  --bg3:#111111;
+  --panel:rgba(10,0,0,0.85);
+  --panel2:rgba(20,5,5,0.9);
+  --text:#e8e8e8;
+  --text-dim:#888;
+  --border:rgba(180,0,0,0.35);
+  --border-bright:rgba(255,30,30,0.7);
+}
+
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:var(--bg);
+  font-family:'Rajdhani',sans-serif;
+  color:var(--text);
+  cursor:default;
+}
+
+/* ─── CANVAS BACKGROUND ─── */
+#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+
+/* ─── PAGES ─── */
+.page{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  display:flex;flex-direction:column;
+  z-index:10;
+  opacity:0;pointer-events:none;
+  transition:opacity 0.6s ease;
+}
+.page.active{opacity:1;pointer-events:all;}
+
+/* ─── SCANLINES ─── */
+.scanlines{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+  pointer-events:none;z-index:5;
+}
+
+/* ─── CORNER BRACKETS ─── */
+.corner-tl,.corner-tr,.corner-bl,.corner-br{
+  position:fixed;width:30px;height:30px;z-index:20;pointer-events:none;
+}
+.corner-tl{top:8px;left:8px;border-top:1px solid var(--red);border-left:1px solid var(--red);}
+.corner-tr{top:8px;right:8px;border-top:1px solid var(--red);border-right:1px solid var(--red);}
+.corner-bl{bottom:8px;left:8px;border-bottom:1px solid var(--red);border-left:1px solid var(--red);}
+.corner-br{bottom:8px;right:8px;border-bottom:1px solid var(--red);border-right:1px solid var(--red);}
+
+/* ══════════════════════════════════════
+   INTRO PAGE
+══════════════════════════════════════ */
+#page-intro{justify-content:center;align-items:center;}
+
+.intro-hud-tl{
+  position:absolute;top:16px;left:16px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;color:var(--red);letter-spacing:1px;
+  line-height:1.7;
+}
+.intro-hud-tr{
+  position:absolute;top:16px;right:16px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;color:var(--text-dim);letter-spacing:1px;
+  text-align:right;display:flex;align-items:center;gap:12px;
+}
+.ver-badge{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);}
+.menu-icon{display:flex;flex-direction:column;gap:3px;cursor:pointer;}
+.menu-icon span{width:18px;height:1px;background:var(--red);display:block;}
+
+.intro-hud-bl{
+  position:absolute;bottom:16px;left:16px;
+  font-family:'Share Tech Mono',monospace;font-size:8px;
+  color:var(--text-dim);display:flex;align-items:center;gap:8px;
+}
+.dot-group{display:flex;gap:4px;}
+.dot-group span{width:5px;height:5px;border-radius:50%;background:var(--red);opacity:0.6;}
+
+.intro-hud-br{
+  position:absolute;bottom:16px;right:16px;
+  font-family:'Share Tech Mono',monospace;font-size:8px;
+  color:var(--text-dim);text-align:right;
+  writing-mode:initial;
+}
+.intro-hud-right-vert{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  writing-mode:vertical-rl;text-orientation:mixed;
+  font-family:'Share Tech Mono',monospace;font-size:7px;
+  color:rgba(180,0,0,0.5);letter-spacing:3px;
+}
+
+.status-panel{
+  position:absolute;left:16px;top:50%;transform:translateY(-50%);
+  font-family:'Share Tech Mono',monospace;font-size:8px;
+  line-height:2;
+}
+.status-panel .lbl{color:var(--red);font-size:7px;letter-spacing:2px;}
+.status-panel .val{color:var(--text);font-size:9px;}
+.status-panel .pct{color:var(--red);font-size:9px;}
+
+.boot-lines{
+  position:absolute;left:16px;top:20%;
+  font-family:'Share Tech Mono',monospace;font-size:9px;
+  color:var(--red);letter-spacing:1px;line-height:2;
+}
+.boot-line{opacity:0;transform:translateX(-10px);transition:all 0.4s ease;}
+.boot-line.show{opacity:1;transform:translateX(0);}
+
+.progress-bar-intro{
+  position:absolute;left:16px;top:calc(20% + 90px);
+  width:120px;height:2px;background:rgba(180,0,0,0.2);
+}
+.progress-bar-intro::after{
+  content:'';position:absolute;top:0;left:0;height:100%;
+  background:var(--red);width:0;
+  animation:progFill 2s 1.5s forwards ease-out;
+}
+@keyframes progFill{to{width:100%;}}
+
+.hud-dots-right{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:5px;
+}
+.hud-dots-right span{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--red);opacity:0.4;
+}
+.hud-dots-right span:nth-child(2){opacity:0.7;}
+.hud-dots-right span:nth-child(3){opacity:1;box-shadow:0 0 6px var(--red);}
+
+.intro-center{
+  display:flex;flex-direction:column;align-items:center;
+  gap:0;position:relative;z-index:2;
+}
+
+.intro-title{
+  font-family:'Orbitron',monospace;
+  font-size:clamp(36px,8vw,72px);
+  font-weight:900;
+  letter-spacing:0.25em;
+  color:#fff;
+  text-shadow:0 0 40px rgba(255,0,0,0.4);
+  margin-bottom:8px;
+  opacity:0;animation:fadeUp 0.8s 2.5s forwards ease-out;
+}
+.intro-title .gate-a{color:var(--red-bright);}
+
+.intro-tagline{
+  font-family:'Rajdhani',sans-serif;font-weight:500;
+  font-size:clamp(9px,1.5vw,13px);
+  letter-spacing:0.5em;color:var(--red);
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:28px;
+  opacity:0;animation:fadeUp 0.8s 2.8s forwards ease-out;
+}
+.intro-tagline::before,.intro-tagline::after{
+  content:'';flex:1;height:1px;background:var(--red);opacity:0.5;width:40px;
+}
+
+.enter-btn{
+  position:relative;padding:12px 40px;
+  border:1px solid var(--red);
+  background:rgba(180,0,0,0.08);
+  color:#fff;
+  font-family:'Orbitron',monospace;font-size:11px;font-weight:600;
+  letter-spacing:0.3em;
+  cursor:pointer;
+  display:flex;align-items:center;gap:12px;
+  clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);
+  transition:all 0.3s;
+  opacity:0;animation:fadeUp 0.8s 3.1s forwards ease-out;
+}
+.enter-btn::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(180,0,0,0.0);
+  clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);
+  transition:background 0.3s;
+}
+.enter-btn:hover::before{background:rgba(180,0,0,0.2);}
+.enter-btn:hover{box-shadow:0 0 20px rgba(255,0,0,0.3);border-color:var(--red-bright);}
+.btn-diamond{width:7px;height:7px;background:var(--red);transform:rotate(45deg);}
+
+.coords-bl{
+  position:absolute;left:16px;bottom:28px;
+  font-family:'Share Tech Mono',monospace;font-size:8px;
+  color:rgba(180,0,0,0.5);line-height:1.6;
+}
+.coords-br{
+  position:absolute;right:16px;bottom:28px;
+  font-family:'Share Tech Mono',monospace;font-size:8px;
+  color:rgba(180,0,0,0.5);line-height:1.6;text-align:right;
+}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(16px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
+/* ══════════════════════════════════════
+   AUTH PAGES (Register / Login)
+══════════════════════════════════════ */
+#page-register,#page-login{justify-content:center;align-items:center;}
+
+.auth-hud-tl{
+  position:absolute;top:14px;left:14px;
+  font-family:'Share Tech Mono',monospace;font-size:8px;
+  color:var(--red);line-height:1.8;
+}
+.auth-hud-tr{
+  position:absolute;top:14px;right:14px;
+  font-family:'Share Tech Mono',monospace;font-size:8px;
+  color:var(--text-dim);text-align:right;line-height:1.8;
+}
+.auth-hud-tr .build{color:var(--red);}
+.auth-hud-bl{
+  position:absolute;bottom:14px;left:14px;
+  font-family:'Share Tech Mono',monospace;font-size:7px;
+  color:rgba(150,150,150,0.5);line-height:1.7;
+}
+.auth-hud-br{
+  position:absolute;bottom:14px;right:14px;
+  font-family:'Share Tech Mono',monospace;font-size:7px;
+  color:var(--red);line-height:1.7;text-align:right;
+}
+.auth-logo{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;
+  gap:2px;
+}
+.auth-logo-text{
+  font-family:'Orbitron',monospace;font-size:clamp(18px,3.5vw,28px);
+  font-weight:900;letter-spacing:0.25em;color:#fff;
+  text-shadow:0 0 20px rgba(255,0,0,0.3);
+}
+.auth-logo-text .gate-a{color:var(--red-bright);}
+.auth-logo-tag{
+  font-family:'Rajdhani',sans-serif;font-size:8px;
+  letter-spacing:0.5em;color:var(--red);
+  display:flex;align-items:center;gap:6px;
+}
+.auth-logo-tag::before,.auth-logo-tag::after{
+  content:'';width:20px;height:1px;background:var(--red);opacity:0.5;
+}
+
+/* CARD */
+.auth-card{
+  position:relative;
+  background:rgba(8,0,0,0.88);
+  border:1px solid rgba(180,0,0,0.4);
+  padding:20px 28px 18px;
+  width:min(360px,55vw);
+  backdrop-filter:blur(20px);
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+  box-shadow:0 0 40px rgba(180,0,0,0.15),inset 0 0 40px rgba(80,0,0,0.08);
+}
+.auth-card::before{
+  content:'';position:absolute;inset:0;
+  border:1px solid rgba(255,30,30,0.12);
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+  pointer-events:none;
+}
+.auth-card-icon{
+  display:flex;justify-content:center;margin-bottom:10px;
+}
+.hex-icon{
+  width:32px;height:36px;position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.hex-icon svg{width:32px;height:32px;}
+
+.auth-card-title{
+  text-align:center;font-family:'Orbitron',monospace;
+  font-size:13px;font-weight:700;letter-spacing:0.25em;
+  color:#fff;margin-bottom:3px;
+}
+.auth-card-sub{
+  text-align:center;font-family:'Rajdhani',sans-serif;
+  font-size:9px;letter-spacing:0.3em;color:var(--red);
+  margin-bottom:16px;
+}
+
+.form-field{
+  position:relative;margin-bottom:9px;
+  display:flex;align-items:center;
+  border:1px solid rgba(120,0,0,0.5);
+  background:rgba(15,0,0,0.6);
+  transition:border-color 0.3s;
+}
+.form-field:focus-within{border-color:rgba(255,30,30,0.7);box-shadow:0 0 8px rgba(255,0,0,0.1);}
+.field-icon{
+  padding:0 10px;opacity:0.5;flex-shrink:0;
+  font-size:11px;
+}
+.form-field input{
+  flex:1;background:transparent;border:none;outline:none;
+  padding:9px 8px;
+  font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:500;
+  color:var(--text);letter-spacing:0.05em;
+}
+.form-field input::placeholder{color:rgba(150,150,150,0.4);font-size:11px;letter-spacing:0.1em;}
+.eye-toggle{
+  padding:0 10px;cursor:pointer;opacity:0.4;font-size:11px;
+  transition:opacity 0.2s;
+}
+.eye-toggle:hover{opacity:0.8;}
+
+.form-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;font-size:10px;
+}
+.checkbox-wrap{display:flex;align-items:center;gap:6px;cursor:pointer;}
+.custom-cb{
+  width:12px;height:12px;border:1px solid rgba(180,0,0,0.6);
+  background:rgba(15,0,0,0.6);display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;cursor:pointer;
+}
+.custom-cb.checked::after{
+  content:'';width:6px;height:6px;background:var(--red);display:block;
+}
+.cb-label{font-size:10px;color:var(--text-dim);}
+.cb-label a{color:var(--red);text-decoration:none;}
+.forgot-link{color:var(--red);font-size:10px;cursor:pointer;letter-spacing:0.05em;}
+.forgot-link:hover{text-shadow:0 0 8px var(--red);}
+
+.auth-btn{
+  width:100%;padding:11px;
+  background:linear-gradient(90deg,#8b0000,#cc0000,#8b0000);
+  border:none;border-top:1px solid rgba(255,80,80,0.3);
+  color:#fff;
+  font-family:'Orbitron',monospace;font-size:10px;font-weight:700;
+  letter-spacing:0.3em;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all 0.3s;
+  position:relative;overflow:hidden;
+  margin-bottom:10px;
+}
+.auth-btn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent);
+  transform:translateX(-100%);transition:transform 0.5s;
+}
+.auth-btn:hover::after{transform:translateX(100%);}
+.auth-btn:hover{box-shadow:0 0 20px rgba(200,0,0,0.4);}
+.auth-btn-arrow{opacity:0.7;font-size:12px;}
+
+.or-divider{
+  display:flex;align-items:center;gap:10px;
+  font-size:9px;color:rgba(150,150,150,0.4);
+  letter-spacing:0.2em;margin-bottom:10px;
+}
+.or-divider::before,.or-divider::after{
+  content:'';flex:1;height:1px;background:rgba(120,0,0,0.3);
+}
+
+.social-btns{display:flex;gap:8px;margin-bottom:12px;}
+.social-btn{
+  flex:1;padding:8px;
+  background:rgba(15,0,0,0.6);border:1px solid rgba(80,0,0,0.4);
+  color:var(--text);font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.3s;
+}
+.social-btn:hover{border-color:rgba(180,0,0,0.6);background:rgba(30,0,0,0.8);}
+
+.auth-switch{
+  text-align:center;font-size:10px;color:rgba(150,150,150,0.6);
+  font-family:'Rajdhani',sans-serif;letter-spacing:0.05em;
+}
+.auth-switch a{color:var(--red);cursor:pointer;font-weight:600;letter-spacing:0.1em;}
+.auth-switch a:hover{text-shadow:0 0 8px var(--red);}
+
+/* ══════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════ */
+#page-dash{flex-direction:row;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{
+  width:160px;flex-shrink:0;height:100%;
+  background:rgba(5,0,0,0.92);
+  border-right:1px solid rgba(120,0,0,0.3);
+  display:flex;flex-direction:column;
+  padding:0;z-index:2;
+}
+.sb-logo{
+  padding:12px 14px 10px;
+  border-bottom:1px solid rgba(80,0,0,0.3);
+}
+.sb-logo-text{
+  font-family:'Orbitron',monospace;font-size:13px;font-weight:900;
+  letter-spacing:0.2em;color:#fff;
+}
+.sb-logo-text .gate-a{color:var(--red-bright);}
+.sb-logo-tag{font-size:7px;letter-spacing:0.3em;color:rgba(180,0,0,0.6);margin-top:1px;}
+
+.sb-nav{flex:1;padding:6px 0;overflow-y:auto;}
+.sb-nav::-webkit-scrollbar{width:2px;}
+.sb-nav::-webkit-scrollbar-thumb{background:var(--red-dim);}
+
+.nav-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;cursor:pointer;
+  font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;
+  letter-spacing:0.12em;color:rgba(180,180,180,0.6);
+  border-left:2px solid transparent;
+  transition:all 0.2s;
+}
+.nav-item:hover{color:#fff;background:rgba(80,0,0,0.2);border-left-color:rgba(180,0,0,0.4);}
+.nav-item.active{
+  color:#fff;background:rgba(120,0,0,0.3);
+  border-left-color:var(--red);
+}
+.nav-item.active .nav-label{color:#fff;}
+.nav-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0;}
+.nav-label{flex:1;margin-left:8px;}
+.nav-arrow{font-size:8px;opacity:0.4;}
+
+.sb-status{
+  padding:10px 14px;border-top:1px solid rgba(80,0,0,0.3);
+}
+.sb-status-badge{
+  display:flex;align-items:center;gap:6px;
+  font-family:'Share Tech Mono',monospace;font-size:8px;
+  color:rgba(150,150,150,0.7);margin-bottom:6px;
+}
+.status-dot-green{width:6px;height:6px;border-radius:50%;background:#00ff88;box-shadow:0 0 6px #00ff88;}
+.sb-uptime{font-size:8px;color:rgba(120,120,120,0.5);display:flex;justify-content:space-between;}
+.sb-uptime span:last-child{color:rgba(180,0,0,0.5);}
+.mini-chart{height:20px;margin-top:6px;display:flex;align-items:flex-end;gap:2px;}
+.mini-bar{flex:1;background:rgba(180,0,0,0.3);border-radius:1px;}
+
+/* MAIN AREA */
+.dash-main{flex:1;height:100%;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+
+/* TOP HEADER */
+.dash-header{
+  height:44px;flex-shrink:0;
+  background:rgba(5,0,0,0.9);
+  border-bottom:1px solid rgba(80,0,0,0.3);
+  display:flex;align-items:center;
+  padding:0 14px;gap:12px;z-index:2;
+}
+.h-online{display:flex;align-items:center;gap:6px;}
+.h-online .dot{width:7px;height:7px;border-radius:50%;background:#00cc66;box-shadow:0 0 8px #00cc66;}
+.h-online-txt{font-family:'Share Tech Mono',monospace;font-size:8px;line-height:1.4;}
+.h-online-txt .lbl{color:#00cc66;}
+.h-online-txt .sub{color:rgba(150,150,150,0.5);font-size:7px;}
+.h-sep{width:1px;height:24px;background:rgba(80,0,0,0.4);}
+
+.h-threat{text-align:center;}
+.h-threat .val{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--red-bright);line-height:1;}
+.h-threat .lbl{font-size:7px;color:var(--red);letter-spacing:0.2em;}
+.h-threat .sub{font-size:6px;color:rgba(150,0,0,0.7);letter-spacing:0.15em;}
+
+.h-ai{display:flex;align-items:center;gap:8px;}
+.ai-badge{
+  width:26px;height:26px;border-radius:50%;
+  background:linear-gradient(135deg,#003366,#0066cc);
+  border:1px solid #0099ff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;flex-shrink:0;
+}
+.ai-txt{font-family:'Share Tech Mono',monospace;font-size:7px;line-height:1.4;}
+.ai-txt .lbl{color:rgba(150,150,150,0.7);}
+.ai-txt .val{color:#00ccff;}
+
+.h-spacer{flex:1;}
+
+.h-notif{
+  position:relative;cursor:pointer;font-size:14px;
+  padding:4px;
+}
+.notif-badge{
+  position:absolute;top:-2px;right:-2px;
+  width:13px;height:13px;border-radius:50%;
+  background:var(--red);
+  font-family:'Orbitron',monospace;font-size:7px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;
+}
+.h-user{display:flex;align-items:center;gap:8px;cursor:pointer;}
+.user-avatar{
+  width:28px;height:28px;border-radius:50%;
+  border:1px solid rgba(180,0,0,0.5);
+  background:linear-gradient(135deg,#1a0000,#3a0000);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;
+}
+.user-info{font-family:'Share Tech Mono',monospace;font-size:7px;line-height:1.6;}
+.user-info .name{color:#fff;letter-spacing:0.1em;}
+.user-info .rank{color:var(--red);letter-spacing:0.1em;}
+.h-chevron{font-size:8px;color:var(--text-dim);}
+
+/* CONTENT */
+.dash-content{flex:1;display:grid;overflow:hidden;
+  grid-template-columns:1fr 240px;
+  grid-template-rows:1fr 1fr;
+  gap:0;
+  padding:0;
+}
+
+/* LEFT HERO */
+.hero-panel{
+  grid-row:1/2;grid-column:1/2;
+  position:relative;padding:14px 16px 10px;
+  border-right:1px solid rgba(60,0,0,0.3);
+  border-bottom:1px solid rgba(60,0,0,0.3);
+  overflow:hidden;
+}
+.hero-bg{
+  position:absolute;inset:0;z-index:0;
+  background:radial-gradient(ellipse 60% 80% at 60% 50%,rgba(120,0,0,0.2) 0%,transparent 70%);
+}
+.hero-content{position:relative;z-index:1;}
+.hero-welcome{font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.2em;color:rgba(180,180,180,0.7);margin-bottom:2px;}
+.hero-title{font-family:'Orbitron',monospace;font-size:clamp(16px,2.5vw,24px);font-weight:900;letter-spacing:0.05em;color:#fff;line-height:1.1;margin-bottom:4px;}
+.hero-sub{font-size:9px;color:rgba(150,150,150,0.5);letter-spacing:0.1em;margin-bottom:10px;}
+
+.nexus-box{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(180,0,0,0.1);
+  border:1px solid rgba(180,0,0,0.3);
+  padding:6px 10px;
+  margin-bottom:10px;
+  max-width:240px;
+}
+.nexus-icon{
+  width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,#cc0000,#660000);
+  border:1px solid rgba(255,60,60,0.4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;flex-shrink:0;
+}
+.nexus-txt .lbl{font-family:'Orbitron',monospace;font-size:8px;color:var(--red);letter-spacing:0.15em;}
+.nexus-txt .msg{font-size:9px;color:rgba(200,200,200,0.7);}
+.nexus-wave{width:60px;height:12px;display:flex;align-items:center;gap:1px;margin-left:auto;}
+.nexus-wave span{width:2px;background:rgba(180,0,0,0.5);border-radius:1px;animation:wave 1.2s ease-in-out infinite;}
+.nexus-wave span:nth-child(1){height:4px;animation-delay:0s;}
+.nexus-wave span:nth-child(2){height:8px;animation-delay:0.1s;}
+.nexus-wave span:nth-child(3){height:12px;animation-delay:0.2s;}
+.nexus-wave span:nth-child(4){height:6px;animation-delay:0.3s;}
+.nexus-wave span:nth-child(5){height:10px;animation-delay:0.4s;}
+.nexus-wave span:nth-child(6){height:4px;animation-delay:0.5s;}
+@keyframes wave{0%,100%{opacity:0.3;}50%{opacity:1;}}
+
+.current-mission{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(10,0,0,0.7);
+  border:1px solid rgba(80,0,0,0.4);
+  padding:8px 10px;
+  margin-top:4px;
+}
+.mission-thumb{
+  width:50px;height:36px;
+  background:linear-gradient(135deg,#1a0000,#3a0000);
+  border:1px solid rgba(80,0,0,0.4);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+}
+.mission-info{flex:1;}
+.mission-label{font-size:7px;color:rgba(150,150,150,0.5);letter-spacing:0.2em;margin-bottom:2px;}
+.mission-name{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;color:var(--red);letter-spacing:0.1em;margin-bottom:1px;}
+.mission-loc{font-size:8px;color:rgba(120,120,120,0.5);letter-spacing:0.15em;}
+.mission-progress{margin-top:4px;}
+.prog-row{display:flex;justify-content:space-between;font-size:7px;color:rgba(120,120,120,0.5);margin-bottom:2px;}
+.prog-bar{height:2px;background:rgba(80,0,0,0.3);}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--red-dim),var(--red));width:67%;}
+.mission-arrow{font-size:14px;color:rgba(180,0,0,0.5);cursor:pointer;}
+
+/* MISSIONS GRID */
+.missions-panel{
+  grid-row:2/3;grid-column:1/2;
+  padding:10px 14px;
+  border-right:1px solid rgba(60,0,0,0.3);
+  overflow:hidden;
+}
+.section-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;
+}
+.section-title{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:0.2em;color:#fff;}
+.section-count{font-size:9px;color:rgba(150,150,150,0.5);}
+.section-link{font-size:8px;color:var(--red);cursor:pointer;letter-spacing:0.1em;display:flex;align-items:center;gap:4px;}
+
+.missions-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.mission-card{
+  background:rgba(10,0,0,0.8);
+  border:1px solid rgba(60,0,0,0.4);
+  padding:8px;cursor:pointer;
+  transition:all 0.2s;position:relative;overflow:hidden;
+}
+.mission-card:hover{border-color:rgba(180,0,0,0.6);background:rgba(25,0,0,0.9);}
+.mc-img{
+  height:42px;
+  background:linear-gradient(135deg,#1a0000,#2d0000);
+  border:1px solid rgba(60,0,0,0.3);
+  margin-bottom:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+}
+.mc-type{font-size:7px;color:rgba(150,150,150,0.5);letter-spacing:0.15em;margin-bottom:1px;}
+.mc-name{font-family:'Orbitron',monospace;font-size:8px;font-weight:700;color:#fff;letter-spacing:0.05em;margin-bottom:5px;line-height:1.2;}
+.mc-diff{display:flex;gap:2px;margin-bottom:4px;}
+.mc-diff span{width:6px;height:6px;transform:rotate(45deg);background:var(--red-dim);}
+.mc-diff span.active{background:var(--red);box-shadow:0 0 4px var(--red);}
+.mc-meta{display:flex;justify-content:space-between;font-size:7px;}
+.mc-xp{color:var(--red);}
+.mc-time{color:rgba(120,120,120,0.5);}
+
+/* RIGHT COLUMN */
+.right-col{
+  grid-row:1/3;grid-column:2/3;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+/* RANK PANEL */
+.rank-panel{
+  padding:10px 12px;
+  border-bottom:1px solid rgba(60,0,0,0.3);
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+}
+.rank-box{
+  background:rgba(10,0,0,0.7);
+  border:1px solid rgba(60,0,0,0.3);
+  padding:8px;text-align:center;
+}
+.rank-lbl{font-size:7px;color:rgba(150,150,150,0.5);letter-spacing:0.2em;margin-bottom:4px;}
+.rank-badge-big{
+  width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(135deg,#8b0000,#cc0000);
+  border:2px solid rgba(255,60,60,0.4);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',monospace;font-size:18px;font-weight:900;
+  color:#fff;margin:0 auto 4px;
+  box-shadow:0 0 16px rgba(200,0,0,0.4);
+}
+.rank-title{font-family:'Orbitron',monospace;font-size:8px;color:var(--red);letter-spacing:0.1em;}
+.rank-sub{font-size:7px;color:rgba(120,120,120,0.4);}
+
+.level-box{padding:8px;background:rgba(10,0,0,0.7);border:1px solid rgba(60,0,0,0.3);}
+.level-num{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;color:#fff;line-height:1;}
+.level-lbl{font-size:7px;color:rgba(150,150,150,0.5);letter-spacing:0.2em;margin-bottom:4px;}
+.xp-label{font-size:7px;color:var(--red);margin-bottom:2px;}
+.xp-bar{height:3px;background:rgba(80,0,0,0.3);border-radius:2px;margin-bottom:2px;}
+.xp-fill{height:100%;background:linear-gradient(90deg,#660000,#cc0000);width:52%;border-radius:2px;}
+.xp-val{font-size:7px;color:rgba(120,120,120,0.4);}
+
+.sync-box{
+  grid-column:1/3;padding:8px;
+  background:rgba(10,0,0,0.7);border:1px solid rgba(60,0,0,0.3);
+  display:flex;align-items:center;gap:10px;
+}
+.sync-circle{
+  width:36px;height:36px;border-radius:50%;
+  border:2px solid rgba(60,0,0,0.4);
+  border-top-color:var(--red);
+  border-right-color:var(--red);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  animation:spin 4s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sync-txt .val{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:#fff;}
+.sync-txt .lbl{font-size:7px;color:rgba(150,150,150,0.5);letter-spacing:0.15em;}
+
+/* ALERTS */
+.alerts-panel{
+  flex:1;padding:10px 12px;
+  border-bottom:1px solid rgba(60,0,0,0.3);
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.alert-item{
+  display:flex;align-items:flex-start;gap:7px;
+  padding:5px 0;border-bottom:1px solid rgba(40,0,0,0.4);
+  font-size:8px;
+}
+.alert-item:last-child{border-bottom:none;}
+.alert-icon{font-size:9px;flex-shrink:0;margin-top:1px;}
+.alert-msg{color:rgba(200,200,200,0.7);flex:1;line-height:1.4;}
+.alert-time{color:rgba(100,100,100,0.5);flex-shrink:0;font-family:'Share Tech Mono',monospace;font-size:7px;}
+
+/* STATS */
+.stats-panel{padding:10px 12px;overflow:hidden;}
+.stat-row{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:6px;font-size:8px;
+}
+.stat-icon{font-size:10px;width:14px;flex-shrink:0;}
+.stat-name{width:70px;color:rgba(180,180,180,0.7);flex-shrink:0;font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:0.1em;}
+.stat-bar-wrap{flex:1;height:3px;background:rgba(40,40,40,0.6);border-radius:2px;}
+.stat-bar{height:100%;border-radius:2px;}
+.stat-val{width:32px;text-align:right;color:rgba(150,150,150,0.7);font-family:'Share Tech Mono',monospace;font-size:8px;}
+
+/* BOTTOM STATUS BAR */
+.dash-footer{
+  height:22px;flex-shrink:0;
+  background:rgba(5,0,0,0.95);
+  border-top:1px solid rgba(80,0,0,0.3);
+  display:flex;align-items:center;
+  padding:0 12px;gap:12px;
+  font-family:'Share Tech Mono',monospace;font-size:7px;
+  color:rgba(120,120,120,0.5);
+}
+.footer-logo{color:rgba(180,0,0,0.6);letter-spacing:0.1em;}
+.footer-sep{color:rgba(80,0,0,0.4);}
+.footer-status{color:rgba(120,120,120,0.4);}
+.footer-spacer{flex:1;}
+.footer-channel{color:rgba(180,0,0,0.4);}
+.footer-icons{display:flex;gap:10px;margin-left:8px;}
+.footer-icons span{font-size:10px;cursor:pointer;opacity:0.4;transition:opacity 0.2s;}
+.footer-icons span:hover{opacity:1;}
+
+/* ══════ PORTAL CANVAS OVERLAY ══════ */
+.portal-svg{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;z-index:1;
+  opacity:0;animation:portalReveal 1.5s 1.8s forwards ease-out;
+}
+@keyframes portalReveal{
+  from{opacity:0;transform:translate(-50%,-50%) scale(0.8);}
+  to{opacity:1;transform:translate(-50%,-50%) scale(1);}
+}
+
+/* GLITCH */
+@keyframes glitch{
+  0%,90%,100%{transform:none;opacity:1;}
+  91%{transform:translate(-2px,0);opacity:0.8;}
+  93%{transform:translate(2px,0);opacity:0.9;}
+  95%{transform:translate(-1px,1px);opacity:0.8;}
+  97%{transform:none;opacity:1;}
+}
+
+.glitch-txt{animation:glitch 5s infinite;}
+
+/* TRANSITIONS */
+.page-enter{animation:pageIn 0.5s ease-out forwards;}
+@keyframes pageIn{
+  from{opacity:0;transform:scale(1.02);}
+  to{opacity:1;transform:scale(1);}
+}
+
+/* PULSE GLOW */
+@keyframes pulseGlow{
+  0%,100%{box-shadow:0 0 10px rgba(180,0,0,0.2);}
+  50%{box-shadow:0 0 25px rgba(180,0,0,0.5),0 0 50px rgba(180,0,0,0.15);}
+}
+.pulse{animation:pulseGlow 3s ease-in-out infinite;}
+
+/* BLINK CURSOR */
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+.cursor{animation:blink 1s infinite;}
+</style>
+</head>
+<body>
+
+<!-- Global BG Canvas -->
+<canvas id="bg-canvas"></canvas>
+<div class="scanlines"></div>
+<div class="corner-tl"></div>
+<div class="corner-tr"></div>
+<div class="corner-bl"></div>
+<div class="corner-br"></div>
+
+<!-- ══════════ INTRO PAGE ══════════ -->
+<div id="page-intro" class="page active">
+
+  <!-- Portal SVG background -->
+  <svg class="portal-svg" width="340" height="500" viewBox="0 0 340 500">
+    <defs>
+      <radialGradient id="pg1" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ff2020" stop-opacity="0.9"/>
+        <stop offset="40%" stop-color="#cc0000" stop-opacity="0.6"/>
+        <stop offset="80%" stop-color="#660000" stop-opacity="0.2"/>
+        <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="blur1"><feGaussianBlur stdDeviation="8"/></filter>
+      <filter id="blur2"><feGaussianBlur stdDeviation="3"/></filter>
+    </defs>
+    <!-- Outer arch -->
+    <path d="M170,20 C80,20 20,100 20,200 L20,420 L60,420 L60,200 C60,122 108,60 170,60 C232,60 280,122 280,200 L280,420 L320,420 L320,200 C320,100 260,20 170,20 Z" fill="rgba(40,0,0,0.6)" stroke="rgba(180,0,0,0.3)" stroke-width="1"/>
+    <!-- Glow core -->
+    <rect x="145" y="30" width="50" height="400" fill="url(#pg1)" filter="url(#blur1)" opacity="0.8"/>
+    <!-- Lightning lines -->
+    <path d="M170,60 L155,120 L175,115 L145,200 L168,190 L130,280" stroke="rgba(255,100,100,0.6)" stroke-width="1.5" fill="none" filter="url(#blur2)"/>
+    <path d="M170,60 L185,130 L165,125 L195,210 L172,200 L210,290" stroke="rgba(255,80,80,0.5)" stroke-width="1" fill="none" filter="url(#blur2)"/>
+    <!-- Ground reflection -->
+    <ellipse cx="170" cy="440" rx="80" ry="12" fill="rgba(180,0,0,0.15)" filter="url(#blur1)"/>
+    <!-- Portal inner energy -->
+    <ellipse cx="170" cy="240" rx="28" ry="60" fill="rgba(255,40,40,0.3)" filter="url(#blur2)"/>
+    <ellipse cx="170" cy="240" rx="14" ry="40" fill="rgba(255,100,100,0.4)" filter="url(#blur2)"/>
+  </svg>
+
+  <div class="intro-hud-tl">SYSTEM BOOT</div>
+  <div class="intro-hud-tr">
+    <span class="ver-badge">VER. 1.0.0</span>
+    <div class="menu-icon"><span></span><span></span><span></span></div>
+  </div>
+
+  <div class="boot-lines" id="bootLines">
+    <div class="boot-line" id="bl0">&gt; INITIALIZING...</div>
+    <div class="boot-line" id="bl1">&gt; SIGNAL DETECTED</div>
+    <div class="boot-line" id="bl2">&gt; DIMENSIONAL BREACH ACTIVE</div>
+    <div class="boot-line" id="bl3">&gt; SYNCHRONIZATION COMPLETE</div>
+  </div>
+  <div class="progress-bar-intro"></div>
+
+  <div class="status-panel">
+    <div class="lbl">STATUS</div>
+    <div class="val">ONLINE</div>
+    <div class="pct">100%</div>
+  </div>
+
+  <div class="intro-hud-right-vert">HELLSGATE SYSTEM INTERFACE</div>
+
+  <div class="hud-dots-right">
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+
+  <div class="intro-center">
+    <div class="intro-title glitch-txt">HELLSG<span class="gate-a">A</span>TE</div>
+    <div class="intro-tagline">ENTER THE UNKNOWN</div>
+    <button class="enter-btn pulse" onclick="goToRegister()">
+      <div class="btn-diamond"></div>
+      ENTER SYSTEM
+      <div class="btn-diamond"></div>
+    </button>
+  </div>
+
+  <!-- Coords -->
+  <div style="position:absolute;left:16px;bottom:30px;font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(100,0,0,0.5);">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+      <div style="display:flex;gap:3px;"><span style="width:5px;height:5px;border-radius:50%;background:rgba(180,0,0,0.4);display:block;"></span><span style="width:5px;height:5px;border-radius:50%;background:rgba(180,0,0,0.4);display:block;"></span><span style="width:5px;height:5px;border-radius:50%;background:rgba(180,0,0,0.4);display:block;"></span></div>
+    </div>
+    🔒 SECURE CONNECTION
+  </div>
+
+  <div style="position:absolute;right:30px;bottom:50%;transform:translateY(50%);font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(180,0,0,0.5);text-align:right;line-height:1.8;">
+    X 37.2300<br>Y 16.5000<br>Z 89.4500
+  </div>
+
+  <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);color:rgba(180,0,0,0.4);font-size:14px;animation:bounce 2s ease-in-out infinite;">▼</div>
+</div>
+
+<!-- ══════════ REGISTER PAGE ══════════ -->
+<div id="page-register" class="page">
+
+  <div class="auth-hud-tl">
+    <div style="color:var(--red);letter-spacing:0.1em;">SYSTEM STATUS</div>
+    <div style="display:flex;align-items:center;gap:5px;">
+      <span style="color:var(--red);font-size:9px;">◆</span>
+      <span>SECURE CONNECTION</span>
+    </div>
+    <div>ESTABLISHED</div>
+  </div>
+  <div class="auth-hud-tr">
+    <div>VERSION 1.0.0</div>
+    <div class="build">BUILD 0524</div>
+    <div style="display:flex;gap:3px;justify-content:flex-end;">
+      <span style="width:6px;height:6px;background:var(--red);display:block;border-radius:1px;"></span>
+      <span style="width:6px;height:6px;background:var(--red);display:block;border-radius:1px;"></span>
+      <span style="width:6px;height:6px;background:var(--red);display:block;border-radius:1px;"></span>
+    </div>
+  </div>
+  <div class="auth-logo">
+    <div class="auth-logo-text">HELLSG<span class="gate-a">A</span>TE</div>
+    <div class="auth-logo-tag">ENTER THE UNKNOWN</div>
+  </div>
+
+  <div class="auth-hud-bl">
+    <div>ENCRYPTION: AES-256</div>
+    <div>FIREWALL: ACTIVE</div>
+    <div>THREAT LEVEL: <span style="color:rgba(0,200,100,0.8);">MINIMAL</span></div>
+    <div style="margin-top:4px;">ALL SYSTEMS PROTECTED</div>
+    <div style="margin-top:3px;">🛡</div>
+  </div>
+  <div class="auth-hud-br">
+    <div style="color:var(--red);margin-bottom:2px;">COORDINATES</div>
+    <div>X: 12.589</div>
+    <div>Y: 45.231</div>
+    <div>Z: 78.901</div>
+  </div>
+
+  <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:7px;color:rgba(80,0,0,0.4);letter-spacing:0.2em;">
+    ALL SYSTEMS OPERATIONAL
+  </div>
+
+  <div class="auth-card" style="margin-top:44px;">
+    <div class="auth-card-icon">
+      <div class="hex-icon">
+        <svg viewBox="0 0 32 32" fill="none">
+          <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" stroke="rgba(180,0,0,0.7)" stroke-width="1.5" fill="rgba(40,0,0,0.6)"/>
+          <polygon points="16,7 23,11 23,20 16,24 9,20 9,11" stroke="rgba(180,0,0,0.4)" stroke-width="1" fill="rgba(80,0,0,0.3)"/>
+          <circle cx="16" cy="15.5" r="3" fill="rgba(200,0,0,0.6)"/>
+        </svg>
+      </div>
+    </div>
+    <div class="auth-card-title">CREATE ACCOUNT</div>
+    <div class="auth-card-sub">BEGIN YOUR EVOLUTION</div>
+
+    <div class="form-field">
+      <div class="field-icon">👤</div>
+      <input type="text" placeholder="Username">
+    </div>
+    <div class="form-field">
+      <div class="field-icon">✉</div>
+      <input type="email" placeholder="Email Address">
+    </div>
+    <div class="form-field">
+      <div class="field-icon">🔒</div>
+      <input type="password" placeholder="Password">
+      <div class="eye-toggle">👁</div>
+    </div>
+    <div class="form-field">
+      <div class="field-icon">🔒</div>
+      <input type="password" placeholder="Confirm Password">
+      <div class="eye-toggle">👁</div>
+    </div>
+
+    <div class="form-row">
+      <div class="checkbox-wrap" onclick="toggleCb(this)">
+        <div class="custom-cb"></div>
+        <span class="cb-label">I agree to the <a>Terms of Service</a> and <a>Privacy Policy</a></span>
+      </div>
+    </div>
+
+    <button class="auth-btn" onclick="goToLogin()">
+      CREATE ACCOUNT <span class="auth-btn-arrow">›</span>
+    </button>
+
+    <div class="or-divider">OR</div>
+
+    <div class="social-btns">
+      <button class="social-btn">G</button>
+      <button class="social-btn" style="font-size:11px;">⬡</button>
+      <button class="social-btn">🍎</button>
+    </div>
+
+    <div class="auth-switch">Already have an account? <a onclick="goToLogin()">LOGIN</a></div>
+  </div>
+</div>
+
+<!-- ══════════ LOGIN PAGE ══════════ -->
+<div id="page-login" class="page">
+
+  <div class="auth-hud-tl">
+    <div style="color:var(--red);letter-spacing:0.1em;">SYSTEM STATUS</div>
+    <div style="display:flex;align-items:center;gap:5px;">
+      <span style="color:var(--red);font-size:9px;">◆</span>
+      <span>SECURE CONNECTION</span>
+    </div>
+    <div>ESTABLISHED</div>
+  </div>
+  <div class="auth-hud-tr">
+    <div>VERSION 1.0.0</div>
+    <div class="build">BUILD 0524</div>
+    <div style="display:flex;gap:3px;justify-content:flex-end;">
+      <span style="width:6px;height:6px;background:var(--red);display:block;border-radius:1px;"></span>
+      <span style="width:6px;height:6px;background:var(--red);display:block;border-radius:1px;"></span>
+      <span style="width:6px;height:6px;background:var(--red);display:block;border-radius:1px;"></span>
+    </div>
+  </div>
+  <div class="auth-logo">
+    <div class="auth-logo-text">HELLSG<span class="gate-a">A</span>TE</div>
+    <div class="auth-logo-tag">ENTER THE UNKNOWN</div>
+  </div>
+
+  <div class="auth-hud-tl" style="top:14px;right:14px;left:auto;text-align:right;">
+    <div style="color:rgba(150,150,150,0.5);">AI SYNCHRONIZATION</div>
+    <div style="color:var(--red);font-size:10px;margin:2px 0;">100%</div>
+    <div style="display:flex;gap:2px;justify-content:flex-end;">
+      <span style="width:8px;height:3px;background:var(--red);display:block;"></span>
+      <span style="width:8px;height:3px;background:var(--red);display:block;"></span>
+      <span style="width:8px;height:3px;background:var(--red);display:block;opacity:0.5;"></span>
+    </div>
+  </div>
+
+  <div class="auth-hud-bl">
+    <div>ENCRYPTION: AES-256</div>
+    <div>FIREWALL: ACTIVE</div>
+    <div>SERVER: <span style="color:rgba(0,200,100,0.8);">ONLINE</span></div>
+    <div style="margin-top:4px;">ALL SYSTEMS PROTECTED</div>
+    <div style="margin-top:3px;">🔒</div>
+  </div>
+  <div class="auth-hud-br">
+    <div style="color:var(--red);margin-bottom:2px;">COORDINATES</div>
+    <div>X: 12.589</div>
+    <div>Y: 45.231</div>
+    <div>Z: 78.901</div>
+  </div>
+
+  <div style="position:absolute;top:14px;right:14px;font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim);text-align:right;line-height:1.8;">
+    <div>THREAT LEVEL</div>
+    <div style="color:rgba(0,200,100,0.8);">MINIMAL</div>
+  </div>
+
+  <div class="auth-card" style="margin-top:44px;">
+    <div class="auth-card-icon">
+      <div class="hex-icon">
+        <svg viewBox="0 0 32 32" fill="none">
+          <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" stroke="rgba(180,0,0,0.7)" stroke-width="1.5" fill="rgba(40,0,0,0.6)"/>
+          <polygon points="16,7 23,11 23,20 16,24 9,20 9,11" stroke="rgba(180,0,0,0.4)" stroke-width="1" fill="rgba(80,0,0,0.3)"/>
+          <circle cx="16" cy="15.5" r="3" fill="rgba(200,0,0,0.6)"/>
+        </svg>
+      </div>
+    </div>
+    <div class="auth-card-title">WELCOME BACK, SURVIVOR</div>
+    <div class="auth-card-sub">ACCESS THE SYSTEM</div>
+
+    <div class="form-field">
+      <div class="field-icon">👤</div>
+      <input type="text" placeholder="Email or Username">
+    </div>
+    <div class="form-field">
+      <div class="field-icon">🔒</div>
+      <input type="password" placeholder="Password">
+      <div class="eye-toggle">👁</div>
+    </div>
+
+    <div class="form-row">
+      <div class="checkbox-wrap" onclick="toggleCb(this)">
+        <div class="custom-cb"></div>
+        <span class="cb-label">Remember me</span>
+      </div>
+      <span class="forgot-link">Forgot Password?</span>
+    </div>
+
+    <button class="auth-btn" onclick="goToDash()">
+      ENTER SYSTEM <span class="auth-btn-arrow">›</span>
+    </button>
+
+    <div class="or-divider">OR</div>
+
+    <div class="social-btns">
+      <button class="social-btn">G</button>
+      <button class="social-btn" style="font-size:11px;">⬡</button>
+      <button class="social-btn">🍎</button>
+    </div>
+
+    <div class="auth-switch">New to HELLSGATE? <a onclick="goToRegister()">CREATE ACCOUNT</a></div>
+  </div>
+</div>
+
+<!-- ══════════ DASHBOARD PAGE ══════════ -->
+<div id="page-dash" class="page">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-text">HELLSG<span class="gate-a">A</span>TE</div>
+      <div class="sb-logo-tag">ENTER THE UNKNOWN</div>
+    </div>
+
+    <div class="sb-nav">
+      <div class="nav-item active"><span class="nav-icon">⌂</span><span class="nav-label">DASHBOARD</span><span class="nav-arrow">›</span></div>
+      <div class="nav-item"><span class="nav-icon">◎</span><span class="nav-label">MISSIONS</span><span class="nav-arrow">›</span></div>
+      <div class="nav-item"><span class="nav-icon">👤</span><span class="nav-label">HUNTERS</span><span class="nav-arrow">›</span></div>
+      <div class="nav-item"><span class="nav-icon">▦</span><span class="nav-label">INVENTORY</span><span class="nav-arrow">›</span></div>
+      <div class="nav-item"><span class="nav-icon">⬡</span><span class="nav-label">SKILLS</span><span class="nav-arrow">›</span></div>
+      <div class="nav-item"><span class="nav-icon">⊞</span><span class="nav-label">GATES</span><span class="nav-arrow">›</span></div>
+      <div class="nav-item"><span class="nav-icon">⊤</span><span class="nav-label">RANKINGS</span><span class="nav-arrow">›</span></div>
+      <div class="nav-item"><span class="nav-icon">≡</span><span class="nav-label">UPDATE LOG</span><span class="nav-arrow">›</span></div>
+      <div class="nav-item"><span class="nav-icon">&gt;_</span><span class="nav-label">COMMANDS</span><span class="nav-arrow">›</span></div>
+      <div class="nav-item"><span class="nav-icon">⚙</span><span class="nav-label">SETTINGS</span><span class="nav-arrow">›</span></div>
+    </div>
+
+    <div class="sb-status">
+      <div class="sb-status-badge"><div class="status-dot-green"></div>ALL SYSTEMS</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,200,100,0.7);margin-bottom:4px;">OPERATIONAL</div>
+      <div class="sb-uptime"><span>UPTIME</span><span>VERSION</span></div>
+      <div class="sb-uptime"><span>72:14:36</span><span>1.0.0</span></div>
+      <div class="mini-chart">
+        <div class="mini-bar" style="height:40%;"></div>
+        <div class="mini-bar" style="height:70%;"></div>
+        <div class="mini-bar" style="height:50%;"></div>
+        <div class="mini-bar" style="height:90%;"></div>
+        <div class="mini-bar" style="height:60%;"></div>
+        <div class="mini-bar" style="height:80%;"></div>
+        <div class="mini-bar" style="height:45%;"></div>
+        <div class="mini-bar" style="height:95%;background:rgba(200,0,0,0.6);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="dash-main">
+
+    <!-- HEADER -->
+    <div class="dash-header">
+      <div class="h-online">
+        <div class="dot"></div>
+        <div class="h-online-txt">
+          <div class="lbl">ONLINE</div>
+          <div class="sub">SYSTEM OPERATIONAL</div>
+        </div>
+      </div>
+      <div class="h-sep"></div>
+      <div class="h-threat">
+        <div class="lbl" style="font-size:6px;letter-spacing:0.2em;color:rgba(150,150,150,0.5);">THREAT LEVEL</div>
+        <div class="val">73%</div>
+        <div class="sub">HIGH RISK</div>
+      </div>
+      <div class="h-sep"></div>
+      <div class="h-ai">
+        <div class="ai-badge">A</div>
+        <div class="ai-txt">
+          <div class="lbl">AI ASSISTANT</div>
+          <div class="val">NEXUS</div>
+          <div class="val">ONLINE</div>
+        </div>
+      </div>
+      <div class="h-spacer"></div>
+      <div class="h-notif">
+        🔔
+        <div class="notif-badge">7</div>
+      </div>
+      <div class="h-user">
+        <div class="user-avatar">👤</div>
+        <div class="user-info">
+          <div class="name">SURVIVOR_07</div>
+          <div class="rank">RANK S</div>
+        </div>
+        <div class="h-chevron">▾</div>
+      </div>
+    </div>
+
+    <!-- CONTENT GRID -->
+    <div class="dash-content">
+
+      <!-- HERO -->
+      <div class="hero-panel">
+        <div class="hero-bg"></div>
+        <div class="hero-content">
+          <div class="hero-welcome">WELCOME BACK,</div>
+          <div class="hero-title">SURVIVOR</div>
+          <div class="hero-sub">THE SYSTEM IS MONITORING DIMENSIONAL ACTIVITY.</div>
+          <div class="nexus-box">
+            <div class="nexus-icon">A</div>
+            <div class="nexus-txt">
+              <div class="lbl">NEXUS AI</div>
+              <div class="msg">New missions are available.</div>
+            </div>
+            <div class="nexus-wave">
+              <span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+          </div>
+          <div class="current-mission">
+            <div class="mission-thumb">🌀</div>
+            <div class="mission-info">
+              <div class="mission-label">CURRENT MISSION</div>
+              <div class="mission-name">INVESTIGATE DIMENSIONAL ANOMALY</div>
+              <div class="mission-loc">SECTOR 12B • RIFT ZONE</div>
+              <div class="mission-progress">
+                <div class="prog-row"><span>PROGRESS</span><span>67%</span></div>
+                <div class="prog-bar"><div class="prog-fill"></div></div>
+              </div>
+            </div>
+            <div class="mission-arrow">›</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MISSIONS GRID -->
+      <div class="missions-panel">
+        <div class="section-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="section-title">ACTIVE MISSIONS</span>
+            <span class="section-count">4/4</span>
+          </div>
+          <div class="section-link">VIEW ALL MISSIONS ›</div>
+        </div>
+        <div class="missions-grid">
+          <div class="mission-card">
+            <div class="mc-img">👹</div>
+            <div class="mc-type">ELIMINATE</div>
+            <div class="mc-name">SHADOW ENTITIES</div>
+            <div class="mc-diff"><span class="active"></span><span class="active"></span><span class="active"></span><span class="active"></span><span></span></div>
+            <div class="mc-meta"><span class="mc-xp">XP 15,000</span><span class="mc-time">02:45:12</span></div>
+          </div>
+          <div class="mission-card">
+            <div class="mc-img">🏚</div>
+            <div class="mc-type">SECURE</div>
+            <div class="mc-name">CORRUPTED ZONE</div>
+            <div class="mc-diff"><span class="active"></span><span class="active"></span><span class="active"></span><span></span><span></span></div>
+            <div class="mc-meta"><span class="mc-xp">XP 12,500</span><span class="mc-time">01:32:45</span></div>
+          </div>
+          <div class="mission-card">
+            <div class="mc-img">🐉</div>
+            <div class="mc-type">DEFEAT</div>
+            <div class="mc-name">GATE GUARDIAN</div>
+            <div class="mc-diff"><span class="active"></span><span class="active"></span><span class="active"></span><span class="active"></span><span class="active"></span></div>
+            <div class="mc-meta"><span class="mc-xp">XP 25,000</span><span class="mc-time">03:21:33</span></div>
+          </div>
+          <div class="mission-card">
+            <div class="mc-img">🌀</div>
+            <div class="mc-type">INVESTIGATE</div>
+            <div class="mc-name">DIMENSIONAL ANOMALY</div>
+            <div class="mc-diff"><span class="active"></span><span class="active"></span><span class="active"></span><span class="active"></span><span></span></div>
+            <div class="mc-meta"><span class="mc-xp">XP 18,000</span><span class="mc-time">04:11:07</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="right-col">
+
+        <!-- RANK -->
+        <div class="rank-panel">
+          <div class="rank-box" style="grid-column:1/2;">
+            <div class="rank-lbl">USER RANK</div>
+            <div class="rank-badge-big">S</div>
+            <div class="rank-title">SHADOW HUNTER</div>
+            <div class="rank-sub">TOP 1.7% OF ALL HUNTERS</div>
+          </div>
+          <div style="grid-column:2/3;display:flex;flex-direction:column;gap:6px;">
+            <div class="level-box">
+              <div class="rank-lbl">LEVEL</div>
+              <div class="level-num">47</div>
+              <div class="xp-label">XP 23,560 / 45,000</div>
+              <div class="xp-bar"><div class="xp-fill"></div></div>
+            </div>
+            <div class="sync-box">
+              <div class="sync-circle" style="font-size:7px;color:var(--red);font-family:'Share Tech Mono';">◐</div>
+              <div class="sync-txt">
+                <div class="val">82.7%</div>
+                <div class="lbl">SYSTEM SYNC</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ALERTS -->
+        <div class="alerts-panel">
+          <div class="section-header">
+            <span class="section-title">SYSTEM ALERTS</span>
+            <span class="section-link">VIEW ALL ›</span>
+          </div>
+          <div class="alert-item">
+            <span class="alert-icon">⚠</span>
+            <span class="alert-msg">Gate instability detected in Sector 7</span>
+            <span class="alert-time">2m ago</span>
+          </div>
+          <div class="alert-item">
+            <span class="alert-icon">⚠</span>
+            <span class="alert-msg">Threat level has increased to 73%</span>
+            <span class="alert-time">5m ago</span>
+          </div>
+          <div class="alert-item">
+            <span class="alert-icon">👤</span>
+            <span class="alert-msg">5,231 Hunters are currently online</span>
+            <span class="alert-time">6m ago</span>
+          </div>
+          <div class="alert-item">
+            <span class="alert-icon">◎</span>
+            <span class="alert-msg">Unknown energy signature detected</span>
+            <span class="alert-time">12m ago</span>
+          </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-panel">
+          <div class="section-header">
+            <span class="section-title">PLAYER STATS</span>
+            <span class="section-link">DETAILS ›</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-icon">❤</span>
+            <span class="stat-name">HP</span>
+            <div class="stat-bar-wrap"><div class="stat-bar" style="width:100%;background:linear-gradient(90deg,#cc0000,#ff3333);"></div></div>
+            <span class="stat-val">8,750</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-icon">⚡</span>
+            <span class="stat-name">ENERGY</span>
+            <div class="stat-bar-wrap"><div class="stat-bar" style="width:100%;background:linear-gradient(90deg,#0066cc,#33aaff);"></div></div>
+            <span class="stat-val">1,250</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-icon">💪</span>
+            <span class="stat-name">STRENGTH</span>
+            <div class="stat-bar-wrap"><div class="stat-bar" style="width:80%;background:linear-gradient(90deg,#cc4400,#ff6633);"></div></div>
+            <span class="stat-val">156</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-icon">⚡</span>
+            <span class="stat-name">AGILITY</span>
+            <div class="stat-bar-wrap"><div class="stat-bar" style="width:70%;background:linear-gradient(90deg,#8800cc,#cc33ff);"></div></div>
+            <span class="stat-val">132</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-icon">🧠</span>
+            <span class="stat-name">INTELLIGENCE</span>
+            <div class="stat-bar-wrap"><div class="stat-bar" style="width:90%;background:linear-gradient(90deg,#006699,#0099cc);"></div></div>
+            <span class="stat-val">189</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-icon">◎</span>
+            <span class="stat-name">SYNC RATE</span>
+            <div class="stat-bar-wrap"><div class="stat-bar" style="width:82%;background:linear-gradient(90deg,#006699,#00cccc);"></div></div>
+            <span class="stat-val">82.7%</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="dash-footer">
+      <span class="footer-logo">HELLSGATE OS</span>
+      <span class="footer-sep">◆</span>
+      <span class="footer-status">SECURE CONNECTION ESTABLISHED</span>
+      <div class="footer-spacer"></div>
+      <span class="footer-channel">—— DIMENSIONAL CHANNEL: SECURE ——</span>
+      <div class="footer-icons">
+        <span>⚙</span><span>✉</span><span>💬</span><span>⬡</span><span>⊞</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+@keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(-5px);}}
+</style>
+
+<script>
+// ── PARTICLE CANVAS ──
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [], mouse = {x:0,y:0};
+
+function resize(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+document.addEventListener('mousemove', e=>{ mouse.x=e.clientX; mouse.y=e.clientY; });
+
+class Particle{
+  constructor(){this.reset();}
+  reset(){
+    this.x = Math.random()*W;
+    this.y = Math.random()*H;
+    this.vx = (Math.random()-0.5)*0.3;
+    this.vy = -Math.random()*0.4 - 0.1;
+    this.size = Math.random()*1.5 + 0.3;
+    this.life = Math.random();
+    this.maxLife = 0.4 + Math.random()*0.6;
+    this.red = Math.random() > 0.3;
+  }
+  update(){
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life -= 0.002;
+    if(this.life <= 0) this.reset();
+  }
+  draw(){
+    const alpha = Math.min(this.life/this.maxLife, 1) * 0.5;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.fillStyle = this.red
+      ? `rgba(200,40,40,${alpha})`
+      : `rgba(100,100,100,${alpha*0.3})`;
+    ctx.fill();
+  }
+}
+
+for(let i=0;i<120;i++) particles.push(new Particle());
+
+function drawBg(){
+  ctx.clearRect(0,0,W,H);
+  // base gradient
+  const g = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.7);
+  g.addColorStop(0,'rgba(30,0,0,0.3)');
+  g.addColorStop(0.5,'rgba(10,0,0,0.5)');
+  g.addColorStop(1,'rgba(0,0,0,0.8)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,H);
+  // mouse glow
+  const mg = ctx.createRadialGradient(mouse.x,mouse.y,0,mouse.x,mouse.y,200);
+  mg.addColorStop(0,'rgba(120,0,0,0.08)');
+  mg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = mg;
+  ctx.fillRect(0,0,W,H);
+  // particles
+  particles.forEach(p=>{ p.update(); p.draw(); });
+}
+
+function animate(){ drawBg(); requestAnimationFrame(animate); }
+animate();
+
+// ── BOOT SEQUENCE ──
+const bootLines = ['bl0','bl1','bl2','bl3'];
+bootLines.forEach((id,i)=>{
+  setTimeout(()=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.add('show');
+  }, 400 + i*350);
+});
+
+// ── NAVIGATION ──
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>{
+    p.classList.remove('active');
+    p.classList.remove('page-enter');
+  });
+  const pg = document.getElementById(id);
+  pg.classList.add('active');
+  void pg.offsetWidth;
+  pg.classList.add('page-enter');
+}
+function goToRegister(){ showPage('page-register'); }
+function goToLogin(){ showPage('page-login'); }
+function goToDash(){ showPage('page-dash'); }
+
+// ── CHECKBOX ──
+function toggleCb(wrap){
+  const cb = wrap.querySelector('.custom-cb');
+  cb.classList.toggle('checked');
+}
+
+// ── NAV ITEMS ──
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',function(){
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// ── FOOTER LINKS ──
+document.addEventListener('click',function(e){
+  if(e.target.classList.contains('footer-icons') || e.target.closest('.footer-icons')){
+    // handle
+  }
+});
+
+// Animate sync circle properly
+setInterval(()=>{
+  const s = document.querySelector('.sync-circle');
+  if(s) s.style.borderColor = `rgba(60,0,0,0.4)`;
+},100);
+</script>
+</body>
+</html>
